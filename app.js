@@ -17,7 +17,7 @@ var connection = mysql.createConnection({
 });
 
 connection.connect();
-
+//displays inventory table to user
 function readData() {
     connection.query('SELECT * FROM products', function (err, res) {
         if (err) throw err;
@@ -28,94 +28,75 @@ function readData() {
         console.log("");
         console.log("                          Find Your Product Below");
         console.log("");
+        //creates pretty table
+        var table = new Table({
+            head: ['Product ID', 'Item', 'Price']
+            , colWidths: [12, 50, 8],
+            colAligns: ["left", "center", " right"],
+            style: {
+                head: ["aqua"],
+                compact: true
+            }
+        });
+        //puts appropriate columns into table
+        for (var i = 0; i < res.length; i++) {
+            table.push([res[i].id, res[i].product_name, res[i].price]);
+        }
+        console.log(table.toString());
+        console.log("");
 
-    var table = new Table({
-        head: ['Product ID', 'Item', 'Price']
-      , colWidths: [12, 50, 8],
-      colAligns: ["left", "center"," right"],
-      style: {
-          head: ["aqua"],
-          compact: true
-      }
+        //function that runs the inquirer prompt
+        customerOrder();
     });
-    for(var i = 0; i < res.length; i++) {
-        table.push([res[i].id, res[i].product_name, res[i].price]);
-    }
-    console.log(table.toString());
-    console.log("");
-    customerOrder();
-});
+    // readData();
 };
-
+//create function to ask user questions
 function customerOrder() {
     inquirer.prompt({
-        name:"item",
-        type:"input",
-        message:"Please choose an item from the list above"
-    }).then(function(answer) {
+        name: "item",
+        type: "input",
+        message: "Please choose an item from the list above"
+    }).then(function (answer) {
         var selection = answer.item;
-        connection.query("SELECT * FROM products WHERE id = ? ", selection, function(err, res) {
-            if(err) throw err;
+        connection.query("SELECT * FROM products WHERE id = ? ", selection, function (err, res) {
+            if (err) throw err;
             // console.log(res)
-            if(res.length===0) {
+            if (res.length === 0) {
                 console.log("We're sorry, that product does not exist. Please choose a product from the list above");
+
                 customerOrder();
             } else {
                 inquirer.prompt({
-                    name:"quantity",
-                    type:"input",
-                    message:"How many would you like to purchase?"
-                }).then(function(howMany) {
-                    var quantity = howMany.quantity;
-                    if(quantity > res[0].stock_quantity) {
-                        console.log(`We're sorry. We only have ${res[0].stock_quantity} items left`)
+                    name: "quantity",
+                    type: "input",
+                    message: "How many would you like to purchase?"
+                }).then(function (answer2) {
+                    var quantity = answer2.quantity;
+                    if (quantity > res[0].stock_quantity) {
+                        console.log("We're sorry. We only have " + res[0].stock_quantity + " items left");
+
+                        customerOrder();
+                    } else {
+                        console.log("");
+                        console.log(res[0].product_name + ' has been purchased \n');
+                        console.log('quantity ' + quantity + ' @ $' + res[0].price);
+
+                        var newQuantity = res[0].stock_quantity - quantity;
+
+                        connection.query("UPDATE products SET stock_quantity = " + newQuantity + " WHERE id = " + res[0].id, function (err, resUpdate) {
+                            if (err) throw error;
+                            console.log("");
+                            console.log("You're order has been processed \n");
+                            console.log("Thank you for shopping with us! \n")
+                            console.log("**************************************************")
+
+                            connection.end();
+
+                        });
                     }
-                    customerOrder();
-                    connection.query("SELECT * FROM products WHERE stock_quantity = ?", quantity, function(err, res) {
-                        if(err) throw error;
-
-                    })
-                })
+                });
             }
-        });
-    });
-};
-
-
-
+        })
+    })
+}
 readData();
-
-
-
-
-// function userOrder() {
-//     var order = [];
-
-//     inquirer.prompt([
-//         {
-//             name: "order",
-//             type: "input",
-//             message: "Choose the id of the product you would like to order?"
-//         },
-//         {
-//             name: "quantity",
-//             type: "input",
-//             message: "How many units of this products would you like to order?"
-//         }
-//     ]).then(function(answer) {
-//         connection.query("Select stock_quantity FROM products WHERE ?",
-//         {
-
-//         } 
-//         )
-    
-//     })
-
-// }
-
-// function displayOrder() {
-// }
-
-// function updateInventory() {
-// }
-
